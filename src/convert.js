@@ -26,7 +26,10 @@ export function serialize_font(font_data) {
             }
             buffer[current_index++] = sum;
         }
-        if (!has_pixel) continue;
+        // we want to encode the space character, even if it is empty, because
+        // its width is important for layout even if it has no pixel data
+        const is_space = id === 32
+        if (!has_pixel && !is_space) continue;
 
         res += `\n${id}:`;
         res += bytesToBase64(buffer);
@@ -259,7 +262,10 @@ export function generate_truetype(font_data) {
             }
         }
 
-        if (!is_empty) {
+        // we want to encode the space character, even if it is empty, because
+        // its width is important for layout even if it has no pixel data
+        const is_space = id === 32
+        if (!is_empty || is_space) {
             let otf_glyph = new opentype.Glyph({
                 name,
                 unicode: id,
