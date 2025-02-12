@@ -4,6 +4,15 @@ import {Glyph} from "./glyph.js";
 
 // Data is stored as base64, with characters encoded as big endian 8-bit numbers
 
+function should_encode_glyph(is_empty, glyph_id) {
+    // we want to encode the space character, even if it is empty, because
+    // its width is important for layout even if it has no pixel data
+    glyphs_to_encode_if_empty = [
+        32 // space
+    ];
+    return !is_empty || glyphs_to_encode_if_empty.includes(glyph_id);
+}
+
 export function serialize_font(font_data) {
     let res = font_data.name.replace(/\n/g, "\\n") + "\n";
     res += font_data.author.replace(/\n/g, "\\n") + "\n";
@@ -15,26 +24,23 @@ export function serialize_font(font_data) {
         let buffer = new Uint8Array(Math.ceil(glyph.width * glyph.height / 8 / Uint8Array.BYTES_PER_ELEMENT));
         let pixels = glyph.data;
         let current_index = 0;
-        let has_pixel = false;
+        let is_empty = true;
         for (let n = 0; n < pixels.length; n += Uint8Array.BYTES_PER_ELEMENT * 8) {
             let sum = 0;
             for (let o = 0; o < Uint8Array.BYTES_PER_ELEMENT * 8 && n + o < pixels.length; o++) {
                 if (pixels[n + o]) {
-                    has_pixel = true;
+                    is_empty = false;
                     sum |= 1 << (7 - o);
                 }
             }
             buffer[current_index++] = sum;
         }
-        // we want to encode the space character, even if it is empty, because
-        // its width is important for layout even if it has no pixel data
-        const is_space = id === 32
-        if (!has_pixel && !is_space) continue;
-
-        res += `\n${id}:`;
-        res += bytesToBase64(buffer);
-        if (glyph.width !== font_data.width || glyph.height !== font_data.height || glyph.baseline !== font_data.baseline || glyph.left_offset !== font_data.left_offset) {
-            res += `:${glyph.width}:${glyph.height}:${glyph.baseline || font_data.baseline}:${glyph.left_offset || font_data.left_offset}`;
+        if (should_encode_glyph(is_empty, id)) {
+            res += `\n${id}:`;
+            res += bytesToBase64(buffer);
+            if (glyph.width !== font_data.width || glyph.height !== font_data.height || glyph.baseline !== font_data.baseline || glyph.left_offset !== font_data.left_offset) {
+                res += `:${glyph.width}:${glyph.height}:${glyph.baseline || font_data.baseline}:${glyph.left_offset || font_data.left_offset}`;
+            }
         }
     }
 
@@ -262,10 +268,7 @@ export function generate_truetype(font_data) {
             }
         }
 
-        // we want to encode the space character, even if it is empty, because
-        // its width is important for layout even if it has no pixel data
-        const is_space = id === 32
-        if (!is_empty || is_space) {
+        if (should_encode_glyph(is_empty, id)) {
             let otf_glyph = new opentype.Glyph({
                 name,
                 unicode: id,
