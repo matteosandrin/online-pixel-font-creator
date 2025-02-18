@@ -7,7 +7,7 @@ import {Glyph} from "./glyph.js";
 function should_encode_glyph(is_empty, glyph_id) {
     // we want to encode the space character, even if it is empty, because
     // its width is important for layout even if it has no pixel data
-    glyphs_to_encode_if_empty = [
+    const glyphs_to_encode_if_empty = [
         32 // space
     ];
     return !is_empty || glyphs_to_encode_if_empty.includes(glyph_id);
